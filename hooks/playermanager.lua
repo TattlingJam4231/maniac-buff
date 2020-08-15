@@ -6,13 +6,13 @@ function PlayerManager:_update_damage_dealt(t, dt)
 	end
 
 	self._damage_dealt_to_cops_t = self._damage_dealt_to_cops_t or t + (tweak_data.upgrades.cocaine_stacks_tick_t or 1)
-	self._damage_dealt_to_cops_decay_t = self._damage_dealt_to_cops_decay_t or t + (tweak_data.upgrades.cocaine_stacks_decay_t or 5)
+	
+	self._damage_dealt_to_cops_decay_trigger_t = self._damage_dealt_to_cops_decay_trigger_t or t + (tweak_data.upgrades.cocaine_stacks_decay_trigger_t or 6)
+	
 	local cocaine_stack = self:get_synced_cocaine_stacks(local_peer_id)
 	local amount = cocaine_stack and cocaine_stack.amount or 0
 	local new_amount = amount
 	
-	
-	--modded
 	self._damage_dealt_to_cops_prev = self._damage_dealt_to_cops_prev or 0
 	if self._damage_dealt_to_cops_prev < tweak_data.upgrades.max_cocaine_stacks_per_tick/10 then
 		local new_stacks = (math.min((self._damage_dealt_to_cops or 0), tweak_data.upgrades.max_cocaine_stacks_per_tick/10) - self._damage_dealt_to_cops_prev) * (tweak_data.gui.stats_present_multiplier or 10) * self:upgrade_value("player", "cocaine_stacking", 0)
@@ -27,10 +27,15 @@ function PlayerManager:_update_damage_dealt(t, dt)
 		self._damage_dealt_by_cops_prev = 0
 	end
 	
-	if self._damage_dealt_to_cops_decay_t <= t then
-		self._damage_dealt_to_cops_decay_t = t + (tweak_data.upgrades.cocaine_stacks_decay_t or 5)
-		local decay = tweak_data.upgrades.cocaine_stacks_decay_amount_per_tick or 20
-		new_amount = new_amount - decay
+	if self._damage_dealt_to_cops_decay_trigger_t <= t then
+		self._damage_dealt_to_cops_decay_t = self._damage_dealt_to_cops_decay_t or t + (tweak_data.upgrades.cocaine_stacks_decay_t or 5)
+		
+		if self._damage_dealt_to_cops_decay_t <= t then
+			self._damage_dealt_to_cops_decay_t = t + (tweak_data.upgrades.cocaine_stacks_decay_t or 5)
+			local decay = amount * (tweak_data.upgrades.cocaine_stacks_decay_percentage_per_tick or 0)
+			decay = decay + tweak_data.upgrades.cocaine_stacks_decay_amount_per_tick or 20
+			new_amount = new_amount - decay
+		end
 	end
 
 	new_amount = math.clamp(math.floor(new_amount), 0, tweak_data.upgrades.max_total_cocaine_stacks or 2047)
@@ -40,13 +45,41 @@ function PlayerManager:_update_damage_dealt(t, dt)
 	end
 	
 	self.cocaine_stack_amount_prev = new_amount
-	--modded
-	
 	
 	if new_amount ~= amount then
 		self:update_synced_cocaine_stacks_to_peers(new_amount, self:upgrade_value("player", "sync_cocaine_upgrade_level", 1), self:upgrade_level("player", "cocaine_stack_absorption_multiplier", 0))
 	end
 end
+
+
+function PlayerManager:_check_damage_to_cops(t, unit, damage_info)
+	local player_unit = self:player_unit()
+
+	if alive(player_unit) and not player_unit:character_damage():need_revive() and player_unit:character_damage():dead() then
+		-- Nothing
+	end
+
+	if not alive(unit) or not unit:base() or not damage_info then
+		return
+	end
+
+	if damage_info.is_fire_dot_damage then
+		return
+	end
+
+	if CopDamage.is_civilian(unit:base()._tweak_table) then
+		return
+	end
+	
+	if damage_info.variant ~= "fire" and damage_info.variant ~= "poison" and not damage_info.attacker_unit:base().sentry_gun then
+		self._damage_dealt_to_cops_decay_trigger_t = t + (tweak_data.upgrades.cocaine_stacks_decay_trigger_t or 6)
+		self._damage_dealt_to_cops_decay_t = t + (tweak_data.upgrades.cocaine_stacks_decay_t or 5)
+	end
+	
+	self._damage_dealt_to_cops = self._damage_dealt_to_cops or 0
+	self._damage_dealt_to_cops = self._damage_dealt_to_cops + (damage_info.damage or 0)
+end
+
 
 function PlayerManager:cocaine_stack_damage_reduction(damage)
 	local local_peer_id = managers.network:session() and managers.network:session():local_peer():id()
