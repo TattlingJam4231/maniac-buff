@@ -1,5 +1,5 @@
 {
-"name" : "Maniac Buff",
+"name" : "Maniac Buff Developer",
 "description" : "Buffs the Maniac perk deck.",
 "author" : "Oryo",
 "image" : "oryo.png",
