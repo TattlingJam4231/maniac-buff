@@ -3,7 +3,6 @@
 "description" : "Buffs the Maniac perk deck.",
 "author" : "Oryo",
 "version" : "1.0",
-"priority" : 600,
 "blt_version" : 2,
 "updates" : [
 	{
