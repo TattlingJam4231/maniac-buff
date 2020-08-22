@@ -8,7 +8,7 @@
 	{
 		"identifier" : "TattlingJam4231ManiacBuff",
 		"host" : {
-			"meta" : "https://github.com/TattlingJam4231/maniac-buff/raw/master/Maniac%20Buff/meta.json"
+			"meta" : "https://github.com/TattlingJam4231/maniac-buff/raw/master/Maniac_Buff/meta.json"
 		}
 	}
 ],
